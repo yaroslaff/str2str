@@ -1,0 +1,14 @@
+[
+    {
+        "req": null,
+        "name": "syslog generic line",
+        "re": "(?P<log_line>.*)\r?\n?"        
+    },
+    {
+        "req": "log_line",
+        "name": "extract datetime and loghost",
+        "re": "^(?P<log_strtime>[^ ]+ +[^ ]+ +[0-9]+:[0-9]+:[0-9]+) (?P<log_host>[^ ]+) (?P<appname>[^:]+): (?P<log_msg>.*)" 
+               
+    }       
+]
+    
