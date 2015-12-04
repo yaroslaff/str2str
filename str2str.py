@@ -70,14 +70,14 @@ def process(ire,args,f,filename=None):
                 # try if it doesn't require keys (and we have first pass)
                 # try if it req keys and we added keys on last pass
                                                 
-                if (rs['req'] is None and not lastnewkeys) or \
-                    (rs['req'] is not None and rs['req'] in lastnewkeys):
+                if (rs['input'] is None and not lastnewkeys) or \
+                    (rs['input'] is not None and rs['input'] in lastnewkeys):
                     #print "will try rs",rs['name']
                     
                     nparse+=1   
                     
-                    if rs['req']:
-                        data = d[rs['req']]
+                    if rs['input']:
+                        data = d[rs['input']]
                     else:
                         data = line
                     m = rs['compiled'].match(data)
@@ -94,9 +94,11 @@ def process(ire,args,f,filename=None):
                         if 'settrue' in rs:
                             if isinstance(rs['settrue'],basestring):
                                 d[rs['settrue']]=True
+                                newkeys.append(rs['settrue'])
                             if isinstance(rs['settrue'],list):
                                 for k in rs['settrue']:
                                     d[k]=True
+                                    newkeys.append(k)
                             
                     else:
                         # no match
