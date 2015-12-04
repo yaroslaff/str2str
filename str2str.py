@@ -162,8 +162,8 @@ log.info("load filters")
 ire=importredir(args.redir)
 
 if args.re is not None:
-    for re in args.re:
-        ire += importre(i)
+    for refile in args.re:
+        ire += importre(refile)
 
 
 # STAGE 2: import data
