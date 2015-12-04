@@ -119,8 +119,7 @@ def process(ire,args,f,filename=None):
 def mkargparse():
     parser = argparse.ArgumentParser(description='str2str: string to struct converter')
     parser.add_argument('--re', metavar='filename.json', dest='re', help='import regexes from filename ', default=None, action='append')
-    parser.add_argument('--redir', metavar='DIR', dest='redir', help='import all json regex files from this dir', default="~/.str2strZ", action='append')
-
+    parser.add_argument('--redir', metavar='DIR', dest='redir', help='import all json regex files from this dir', default="~/.str2str", action='append')
     parser.add_argument('-f', dest='filename', default=None, help='text file name (default: stdin)', action='append')
     parser.add_argument('--dump',dest='dump', default=False, action='store_true', help='out data with python pring (not really useful)')    
     parser.add_argument('--jdump',dest='jdump', default=False, action='store_true', help='out data in json format (list of dicts)')    
