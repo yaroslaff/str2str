@@ -16,12 +16,16 @@ def importredir(path):
     ire=[]
     fullpath = os.path.expanduser(path)
     #print "importredir from",path
-    for file in os.listdir(fullpath):
-        if file.endswith(".json"):
-            #print ".. import file",file
-            ire += importre(os.path.join(fullpath, file))
-    
-    return ire
+    try:
+        for file in os.listdir(fullpath):
+            if file.endswith(".json"):
+                #print ".. import file",file
+                ire += importre(os.path.join(fullpath, file))
+        
+        return ire
+    except OSError as e:
+        log.warn('not found '+fullpath)
+        return []
 
 def importre(filename):
     with open(filename) as json_file:
@@ -115,7 +119,7 @@ def process(ire,args,f,filename=None):
 def mkargparse():
     parser = argparse.ArgumentParser(description='str2str: string to struct converter')
     parser.add_argument('--re', metavar='filename.json', dest='re', help='import regexes from filename ', default=None, action='append')
-    parser.add_argument('--redir', metavar='DIR', dest='redir', help='import all json regex files from this dir', default="~/.str2str", action='append')
+    parser.add_argument('--redir', metavar='DIR', dest='redir', help='import all json regex files from this dir', default="~/.str2strZ", action='append')
 
     parser.add_argument('-f', dest='filename', default=None, help='text file name (default: stdin)', action='append')
     parser.add_argument('--dump',dest='dump', default=False, action='store_true', help='out data with python pring (not really useful)')    
