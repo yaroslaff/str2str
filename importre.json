@@ -1,14 +1,24 @@
 [
     {
-        "req": null,
+        "input": null,
         "name": "syslog generic line",
         "re": "(?P<log_line>.*)\r?\n?"        
     },
     {
-        "req": "log_line",
+        "input": "log_line",
         "name": "extract datetime and loghost",
-        "re": "^(?P<log_strtime>[^ ]+ +[^ ]+ +[0-9]+:[0-9]+:[0-9]+) (?P<log_host>[^ ]+) (?P<appname>[^:]+): (?P<log_msg>.*)" 
-               
-    }       
+        "re": "^(?P<log_strtime>[^ ]+ +[^ ]+ +[0-9]+:[0-9]+:[0-9]+) (?P<log_host>[^ ]+) (?P<appstr>[^:]+): (?P<log_msg>.*)"                
+    },
+    {
+        "input": "appstr",
+        "name": "extract appname with pid from appstr",
+        "re": "(?P<appname>.*)\\[(?P<apppid>[\\d]+)\\]"
+    },
+    {
+        "input": "appstr",
+        "name": "extract appname from appstr",
+        "re": "^(?P<appname>.*)$"
+    }
+    
 ]
     

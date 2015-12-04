@@ -1,12 +1,12 @@
 [
     {
-        "req": "log_msg",
+        "input": "log_msg",
         "name": "postgrey greylisting messages",
         "re": "^action=(?P<action>[^,]+), reason=(?P<reason>[^,]+), client_name=(?P<client_name>[^,]+), client_address=(?P<client_address>[^,]+), sender=(?P<sender>[^,]+), recipient=(?P<recipient>.*)",
         "settrue": ["mail","greylist"]
     },
     {
-        "req": "log_msg",
+        "input": "log_msg",
         "name": "postfix delivery message",
         "re": "^(?P<msgid>[0-9A-F]+): to=(?P<to>[^,]+), relay=(?P<relay>[^,]+), delay=(?P<delay>[^,]+), delays=(?P<delays>[^,]+), dsn=(?P<dsn>[^,]+), status=(?P<status>.*)",
         "settrue": "postfix_relay"
