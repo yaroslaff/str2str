@@ -7,6 +7,7 @@
     },
     {
         "input": "log_msg",
+        "prefilter": "'postfix' in appname",
         "name": "postfix delivery message",
         "re": "^(?P<msgid>[0-9A-F]+): to=(?P<to>[^,]+), relay=(?P<relay>[^,]+), delay=(?P<delay>[^,]+), delays=(?P<delays>[^,]+), dsn=(?P<dsn>[^,]+), status=(?P<status>.*)",
         "settrue": "postfix_relay"

@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from __future__ import print_function
+# from __future__ import print_function
 
 import sys
 import argparse
@@ -38,6 +38,15 @@ def importre(filename):
         for rs in json_data:
             rs['filename']=filename
             rs['compiled']=re.compile(rs['re'])
+            
+            if 'prefilter' in rs:
+                try:
+                    node = evalidate.evalidate(rs['prefilter'])
+                    rs['prefilter_code']=compile(node,'<prefilter>','eval')
+                except ValueError as e:
+                    log.error('bad prefilter code \'{}\' in {}: {}'.format(rs['prefilter'],filename,str(e)))
+                    os.exit(1)
+             
     return json_data
 
 
@@ -72,9 +81,14 @@ def process(ire,args,f,filename=None):
                                                 
                 if (rs['input'] is None and not lastnewkeys) or \
                     (rs['input'] is not None and rs['input'] in lastnewkeys):
-                    #print "will try rs",rs['name']
-                    
-                    nparse+=1   
+                      #print "will try rs",rs['name']
+            
+                    if 'prefilter_code' in rs:
+                        if not eval(rs['prefilter_code'],{},d):
+                            # prefilter not match, do not use this rs at this pass on this structure
+                            continue
+                      
+                    nparse+=1                       
                     
                     if rs['input']:
                         data = d[rs['input']]
@@ -128,8 +142,16 @@ def mkargparse():
     parser.add_argument('--jload',dest='jload', default=False, action='store_true', help='Do not parse, load pre-parsed json (saved with --jdump before)')    
     parser.add_argument('--fmt',dest='fmt', default=None, help='print in format') 
     parser.add_argument('--key',dest='key', default=None, action='append', help='print keys (multiple)') 
+    parser.add_argument('--keysep',dest='keysep', default=' ', help='separator for keys') 
+
     parser.add_argument('--keynames',dest='keynames', default=False, action='store_true', help='print also keynames (for --key)') 
+    parser.add_argument('--count',dest='count', default=False, action='store_true', help='print count of records') 
     parser.add_argument('--filter',dest='filter',default=None, help='evalidate filtering expression')
+    parser.add_argument('--sort',dest='sort',metavar="FIELD", default=None, help='sort by value of field')
+    parser.add_argument('--reverse',dest='reverse', default=False, action='store_true', help='if sort, sort in reverse order')
+    parser.add_argument('--rmkey', dest='rmkey', metavar="KEY", default=[], help='delete key (if exists)', action='append')
+    parser.add_argument('--onlykey', dest='onlykey', metavar="KEY", default=[], help='delete all keys except these (multiple)', action='append')
+
     parser.add_argument('-v',dest='v',default=0, help='verbose', action='count')
 
     return parser
@@ -226,8 +248,25 @@ if args.filter:
         sys.exit(1)
         
 
+# STAGE 4: postprocessing (sorting)
 
-# STAGE 4: output
+if args.sort:
+    dd = sorted(dd, key = lambda i: i[args.sort], reverse=args.reverse)
+
+if args.rmkey:
+    for d in dd:
+        for nk in args.rmkey:
+            if nk in d:
+                del d[nk]
+
+
+if args.onlykey:
+    for d in dd:
+        for k in d.keys():
+            if not k in args.onlykey:
+                del d[k]
+
+# STAGE 5: output
 log.info("output results")
 
 
@@ -250,12 +289,15 @@ if args.key:
         for k in args.key:        
             if k in d:
                 if outstr:
-                    outstr+=" "
+                    outstr+=args.keysep
                 if args.keynames:
                     outstr+=k+": "
                 outstr+=d[k]        
         if outstr:
             print(outstr)
+
+if args.count:
+    print len(dd)
     
 log.info("str2str done")
     
