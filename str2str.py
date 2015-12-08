@@ -66,7 +66,7 @@ def process(ire,args,f,filename=None):
         nlines+=1        
         #print "LINE:",line
         d={}
-        d['codename']=[]
+        d['_codename']=[]
         
         lastnewkeys=[]                
         npass=0
@@ -117,7 +117,7 @@ def process(ire,args,f,filename=None):
                                     newkeys.append(k)
                         # process codename
                         if 'codename' in rs:
-                            d['codename'].append(rs['codename'])
+                            d['_codename'].append(rs['codename'])
                             
                     else:
                         # no match
