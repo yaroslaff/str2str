@@ -314,7 +314,7 @@ if args.key:
                     outstr+=args.keysep
                 if args.keynames:
                     outstr+=k+": "
-                outstr+=d[k]        
+                outstr+=str(d[k])        
         if outstr:
             print(outstr)
 
