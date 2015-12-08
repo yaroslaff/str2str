@@ -10,7 +10,7 @@ import evalidate
 import time
 import logging
 import logging.handlers
-
+import cPickle as pickle
 
 def importredir(path):
     ire=[]
@@ -66,6 +66,7 @@ def process(ire,args,f,filename=None):
         nlines+=1        
         #print "LINE:",line
         d={}
+        d['codename']=[]
         
         lastnewkeys=[]                
         npass=0
@@ -104,6 +105,7 @@ def process(ire,args,f,filename=None):
                                 d[k]=gd[k]
                                 newkeys.append(k)
                                 # print "append newkey '{}'".format(k)
+                        
                         # process settrue from this re
                         if 'settrue' in rs:
                             if isinstance(rs['settrue'],basestring):
@@ -113,6 +115,9 @@ def process(ire,args,f,filename=None):
                                 for k in rs['settrue']:
                                     d[k]=True
                                     newkeys.append(k)
+                        # process codename
+                        if 'codename' in rs:
+                            d['codename'].append(rs['codename'])
                             
                     else:
                         # no match
@@ -139,6 +144,8 @@ def mkargparse():
     parser.add_argument('-f', dest='filename', default=None, help='text file name (default: stdin)', action='append')
     parser.add_argument('--dump',dest='dump', default=False, action='store_true', help='out data with python pring (not really useful)')    
     parser.add_argument('--jdump',dest='jdump', default=False, action='store_true', help='out data in json format (list of dicts)')    
+    parser.add_argument('--pdump',dest='pdump', metavar="FILENAME.p", default=False, help='save parsed data as pickle serialized object')    
+    parser.add_argument('--pload',dest='pload', metavar="FILENAME.p", default=False, help='load parsed data as pickle serialized object')    
     parser.add_argument('--jload',dest='jload', default=False, action='store_true', help='Do not parse, load pre-parsed json (saved with --jdump before)')    
     parser.add_argument('--fmt',dest='fmt', default=None, help='print in format') 
     parser.add_argument('--key',dest='key', default=None, action='append', help='print keys (multiple)') 
@@ -148,6 +155,8 @@ def mkargparse():
     parser.add_argument('--count',dest='count', default=False, action='store_true', help='print count of records') 
     parser.add_argument('--filter',dest='filter',default=None, help='evalidate filtering expression')
     parser.add_argument('--sort',dest='sort',metavar="FIELD", default=None, help='sort by value of field')
+    parser.add_argument('--head',dest='head',metavar="NUM", default=None, help='leave only first NUM records', type=int)
+    parser.add_argument('--tail',dest='tail',metavar="NUM", default=None, help='leave only last NUM records',type=int)
     parser.add_argument('--reverse',dest='reverse', default=False, action='store_true', help='if sort, sort in reverse order')
     parser.add_argument('--rmkey', dest='rmkey', metavar="KEY", default=[], help='delete key (if exists)', action='append')
     parser.add_argument('--onlykey', dest='onlykey', metavar="KEY", default=[], help='delete all keys except these (multiple)', action='append')
@@ -207,15 +216,19 @@ if args.filename is not None:
                 
 
 else:
-    if args.jload:
-        # load from pre-parsed json file
+    # no filename specified
+    if args.pload:
+        # import from pickle
+        dd = pickle.load(open(args.pload,"rb"))
+    elif args.jload:
+        # load from stdin JSON
         try:
             dd = json.load(sys.stdin)
         except ValueError as e:
             print("Cannot import regexes from stdin file: {}".format(filename,e))
             sys.exit()
     else:
-        # load from strings file
+        # load from STDIN strings
         dd = process(ire,args,sys.stdin,filename="<STDIN>")
 
 
@@ -266,6 +279,15 @@ if args.onlykey:
             if not k in args.onlykey:
                 del d[k]
 
+if args.head:
+    dd = dd[:args.head]    
+
+if args.tail:
+    startpos=len(dd)-args.tail
+    if startpos<0:
+        startpos=0
+    dd = dd[startpos:]
+
 # STAGE 5: output
 log.info("output results")
 
@@ -298,6 +320,9 @@ if args.key:
 
 if args.count:
     print len(dd)
+
+if args.pdump:
+    pickle.dump(dd,open(args.pdump,"wb",-1))
     
 log.info("str2str done")
     
