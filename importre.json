@@ -14,7 +14,12 @@
     {
         "input": "appstr",
         "desc": "extract appname with pid from appstr",
-        "re": "(?P<appname>.*)\\[(?P<apppid>[\\d]+)\\]"
+        "re": "(?P<appname>.*)\\[(?P<apppid>[\\d]+)\\]",
+        "spec": {
+            "apppid": "int"
+        },
+        "codename": "int-apppid"
+        
     },
     {
         "input": "appstr",

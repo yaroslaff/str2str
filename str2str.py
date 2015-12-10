@@ -106,6 +106,13 @@ def process(ire,args,f,filename=None):
                                 newkeys.append(k)
                                 # print "append newkey '{}'".format(k)
                         
+                        # process specials from this re
+                        if 'spec' in rs:
+                            for name, spec in rs['spec'].iteritems():
+                                if name in d:
+                                    if spec=='int':
+                                        d[name]=int(d[name])
+                        
                         # process settrue from this re
                         if 'settrue' in rs:
                             if isinstance(rs['settrue'],basestring):
