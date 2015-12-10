@@ -111,7 +111,9 @@ def process(ire,args,f,filename=None):
                             for name, spec in rs['spec'].iteritems():
                                 if name in d:
                                     if spec=='int':
-                                        d[name]=int(d[name])
+                                        d[name]=int(float((d[name])))
+                                    elif spec=='float':
+                                        d[name]=float(d[name])
                         
                         # process settrue from this re
                         if 'settrue' in rs:
@@ -264,7 +266,7 @@ if args.filter:
         dd = newdd
             
     except ValueError as e:
-        timestderr("Bad filter code:", args.filter, e)
+        log.error("Bad filter code: {} exception: {}".format(args.filter, e))
         sys.exit(1)
         
 
