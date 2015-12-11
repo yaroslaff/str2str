@@ -148,29 +148,50 @@ def process(ire,args,f,filename=None):
 
 def mkargparse():
     parser = argparse.ArgumentParser(description='str2str: string to struct converter')
-    parser.add_argument('--re', metavar='filename.json', dest='re', help='import regexes from filename ', default=None, action='append')
-    parser.add_argument('--redir', metavar='DIR', dest='redir', help='import all json regex files from this dir', default="~/.str2str")
-    parser.add_argument('-f', dest='filename', default=None, help='text file name (default: stdin)', action='append')
-    parser.add_argument('--dump',dest='dump', default=False, action='store_true', help='out data with python pring (not really useful)')    
-    parser.add_argument('--jdump',dest='jdump', default=False, action='store_true', help='out data in json format (list of dicts)')    
-    parser.add_argument('--pdump',dest='pdump', metavar="FILENAME.p", default=False, help='save parsed data as pickle serialized object')    
-    parser.add_argument('--pload',dest='pload', metavar="FILENAME.p", default=False, help='load parsed data as pickle serialized object')    
-    parser.add_argument('--jload',dest='jload', default=False, action='store_true', help='Do not parse, load pre-parsed json (saved with --jdump before)')    
-    parser.add_argument('--fmt',dest='fmt', default=None, help='print in format') 
-    parser.add_argument('--key',dest='key', default=None, action='append', help='print keys (multiple)') 
-    parser.add_argument('--keysep',dest='keysep', default=' ', help='separator for keys') 
+    
+    gconf = parser.add_argument_group('Loading configuration', description='# if nothing specified, config files (*.json) loaded from default --redir')
+    ginput = parser.add_argument_group('Input data')
+    gfilter = parser.add_argument_group('Filtering')
+    gpost = parser.add_argument_group('Post-processing')
+    goutput = parser.add_argument_group('Output data')
 
-    parser.add_argument('--keynames',dest='keynames', default=False, action='store_true', help='print also keynames (for --key)') 
-    parser.add_argument('--count',dest='count', default=False, action='store_true', help='print count of records') 
-    parser.add_argument('--filter',dest='filter',default=None, help='evalidate filtering expression')
-    parser.add_argument('--sort',dest='sort',metavar="FIELD", default=None, help='sort by value of field')
-    parser.add_argument('--head',dest='head',metavar="NUM", default=None, help='leave only first NUM records', type=int)
-    parser.add_argument('--tail',dest='tail',metavar="NUM", default=None, help='leave only last NUM records',type=int)
-    parser.add_argument('--reverse',dest='reverse', default=False, action='store_true', help='if sort, sort in reverse order')
-    parser.add_argument('--rmkey', dest='rmkey', metavar="KEY", default=[], help='delete key (if exists)', action='append')
-    parser.add_argument('--onlykey', dest='onlykey', metavar="KEY", default=[], help='delete all keys except these (multiple)', action='append')
-
+    # general options
     parser.add_argument('-v',dest='v',default=0, help='verbose', action='count')
+    
+    # group conf
+    gconf.add_argument('--re', metavar='filename.json', dest='re', help='import regexes from filename ', default=None, action='append')
+    gconf.add_argument('--redir', metavar='DIR', dest='redir', help='import all json regex files from this dir (default: ~/.str2str)', default="~/.str2str")
+    
+    
+    # group input
+    ginput.add_argument('-f', dest='filename', default=None, help='text file name (default: stdin)', action='append')
+    ginput.add_argument('--pload',dest='pload', metavar="FILENAME.p", default=False, help='load pre-parsed data as pickle serialized object')    
+    ginput.add_argument('--jload',dest='jload', default=False, action='store_true', help='Do not parse by regexes, load data from pre-parsed json (saved with --jdump before)')    
+
+    # group filter
+    gfilter.add_argument('--filter',dest='filter',default=None, help='evalidate filtering expression')
+
+    # group postprocessing
+    gpost.add_argument('--sort',dest='sort',metavar="FIELD", default=None, help='sort by value of field')
+    gpost.add_argument('--head',dest='head',metavar="NUM", default=None, help='leave only first NUM records', type=int)
+    gpost.add_argument('--tail',dest='tail',metavar="NUM", default=None, help='leave only last NUM records',type=int)
+    gpost.add_argument('--reverse',dest='reverse', default=False, action='store_true', help='if sort, sort in reverse order')
+    gpost.add_argument('--rmkey', dest='rmkey', metavar="KEY", default=[], help='delete key (if exists)', action='append')
+    gpost.add_argument('--onlykey', dest='onlykey', metavar="KEY", default=[], help='delete all keys except these (multiple)', action='append')
+
+    
+    # group output
+    goutput.add_argument('--dump',dest='dump', default=False, action='store_true', help='out data with python pring (not really useful)')    
+    goutput.add_argument('--jdump',dest='jdump', default=False, action='store_true', help='out data in json format (list of dicts)')    
+    goutput.add_argument('--pdump',dest='pdump', metavar="FILENAME.p", default=False, help='save parsed data as pickle serialized object')    
+    goutput.add_argument('--fmt',dest='fmt', default=None, help='print in format') 
+    goutput.add_argument('--key',dest='key', default=None, action='append', help='print keys (multiple)') 
+    goutput.add_argument('--keysep',dest='keysep', default=' ', help='separator for keys') 
+    goutput.add_argument('--keynames',dest='keynames', default=False, action='store_true', help='print also keynames (for --key)') 
+    goutput.add_argument('--count',dest='count', default=False, action='store_true', help='print count of records') 
+    goutput.add_argument('--sum',dest='sum', metavar='FIELD', default=False,    help='calculate and print sum of field') 
+    goutput.add_argument('--avg',dest='avg', metavar='FIELD', default=False, help='calculate and print average of field') 
+
 
     return parser
 
@@ -329,6 +350,22 @@ if args.key:
 
 if args.count:
     print len(dd)
+
+if args.sum:
+    s=0
+    for d in dd:
+        s+=d[args.sum]
+    print s
+
+if args.avg:
+    s=0
+    n=0
+    for d in dd:
+        n+=1
+        s+=d[args.avg]
+    avg=s/n
+    print avg
+
 
 if args.pdump:
     pickle.dump(dd,open(args.pdump,"wb",-1))
