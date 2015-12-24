@@ -12,6 +12,10 @@ import logging
 import logging.handlers
 import cPickle as pickle
 
+import time
+import datetime
+import dateutil.parser 
+
 def importredir(path):
     ire=[]
     fullpath = os.path.expanduser(path)
@@ -54,6 +58,21 @@ def mergedict(x,y):
     z = x.copy()
     z.update(y)
     return z
+
+
+def datetimeparse(d,name,spec):
+    (cmd,utfield, agefield) = spec.split('|')
+    dt = dateutil.parser.parse(d[name])
+    utime = int(time.mktime(dt.timetuple()))
+    
+    now = datetime.datetime.now()
+    utimenow = int(time.mktime(now.timetuple())) 
+    
+    age = utimenow - utime
+        
+    d[utfield]=utime
+    d[agefield]=age
+    
 
 def process(ire,args,f,filename=None):
     dd=[]
@@ -114,6 +133,8 @@ def process(ire,args,f,filename=None):
                                         d[name]=int(float((d[name])))
                                     elif spec=='float':
                                         d[name]=float(d[name])
+                                    elif spec.startswith("datetimeparse"):
+                                        datetimeparse(d,name,spec)
                         
                         # process settrue from this re
                         if 'settrue' in rs:
