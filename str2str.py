@@ -330,7 +330,6 @@ if args.jdump:
     print(json.dumps(dd, sort_keys=True, indent=4, separators=[',', ': ']))
 
 if args.fmt:
-    print("format:",args.fmt)
     for d in dd:
         print(args.fmt.format(**d))
         
