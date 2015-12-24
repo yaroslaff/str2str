@@ -8,3 +8,7 @@ Mainly for loading usual plaintext logfile, converting to to data structures (us
 **example**
 
 From postfix mail.log file, 
+
+## preprequisites
+
+pip install python-dateutil
