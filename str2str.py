@@ -82,6 +82,12 @@ def process(ire,args,f,filename=None):
     nparse=0
    
     for line in f:
+    
+        # maybe just skip this line?
+        if args.grep and not args.grep in line:
+            continue
+        
+    
         nlines+=1        
         #print "LINE:",line
         d={}
@@ -186,6 +192,7 @@ def mkargparse():
     
     # group input
     ginput.add_argument('-f', dest='filename', default=None, help='text file name (default: stdin)', action='append')
+    ginput.add_argument('--grep', dest='grep', default=None, help='load only strings which has this text')
     ginput.add_argument('--pload',dest='pload', metavar="FILENAME.p", default=False, help='load pre-parsed data as pickle serialized object')    
     ginput.add_argument('--jload',dest='jload', default=False, action='store_true', help='Do not parse by regexes, load data from pre-parsed json (saved with --jdump before)')    
 
