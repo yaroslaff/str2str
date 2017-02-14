@@ -16,7 +16,10 @@ import time
 import datetime
 import dateutil.parser 
 
-def importredir(path):
+default_redir = '~/.str2str'
+
+
+def importredir(path,silent=False):
     ire=[]
     fullpath = os.path.expanduser(path)
     #print "importredir from",path
@@ -28,7 +31,8 @@ def importredir(path):
         
         return ire
     except OSError as e:
-        log.warn('not found '+fullpath)
+        if not silent:
+            log.warn('not found '+fullpath)
         return []
 
 def importre(filename):
@@ -187,7 +191,7 @@ def mkargparse():
     
     # group conf
     gconf.add_argument('--re', metavar='filename.json', dest='re', help='import regexes from filename ', default=None, action='append')
-    gconf.add_argument('--redir', metavar='DIR', dest='redir', help='import all json regex files from this dir (default: ~/.str2str)', default="~/.str2str")
+    gconf.add_argument('--redir', metavar='DIR', dest='redir', help='import all json regex files from this dir (default: {})'.format(default_redir), default=default_redir)
     
     
     # group input
@@ -248,7 +252,15 @@ log.info("str2str started, verbosity: {}".format(args.v))
 # STAGE 1: import regex
 log.info("load filters")
 
-ire=importredir(args.redir)
+
+if args.redir == default_redir and not args.v:
+    silent=True
+else:
+    silent=False
+    
+ire=importredir(args.redir,silent)
+
+
 
 if args.re is not None:
     for refile in args.re:
