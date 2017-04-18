@@ -209,12 +209,16 @@ def join1(d, new, jop, jc):
             if fname in jop['max']:
                 newd['_join_max_'+fname] = max(newd[fname], fvalue)
             if fname in jop['last']:
-                newd[fname] = fvalue
+                newd[fname] = fvalue                                   
+            
+            if fname in jop['name']:
+                newfname = '_join_' + str(jc) + '_' + fname
+                newd[newfname] = fvalue
                 
             if fname in jop['min'] and fname in jop['max']:
                 # make delta
                 newd['_join_delta_'+fname] = newd['_join_max_'+fname] - newd['_join_min_'+fname]
-                
+                            
             # and no handling for 'first'.
                 
         else:
@@ -228,7 +232,7 @@ def join1(d, new, jop, jc):
             elif fname in jop['max']:
                 newd['_join_max_'+fname] = fvalue
                 newd[fname] = fvalue                  
-            # no special handling for 'first' or 'last':
+            # no special handling for 'first' or 'last' or 'jname':
             else:
                 newd[fname] = fvalue
 
@@ -264,7 +268,8 @@ def join(data, jop):
             joined_keys.append(key)
         else:
             # no joinfield, add as-is
-            out.append(d)
+            if not jop['jdiscard']:
+                out.append(d)
     return out
 
 def mkargparse():
@@ -301,8 +306,9 @@ def mkargparse():
     gpost.add_argument('--reverse',dest='reverse', default=False, action='store_true', help='Reverse resulting list')
     gpost.add_argument('--rmkey', dest='rmkey', metavar="KEY", default=[], help='delete key (if exists)', action='append')
     gpost.add_argument('--onlykey', dest='onlykey', metavar="KEY", default=[], help='delete all keys except these (multiple)', action='append')
-    gpost.add_argument('--join', dest='join', metavar="FIELD", default=None, help='join by FIELD')
-    gpost.add_argument('--joinfmt', dest='joinfmt', metavar="FORMAT", default=None, help='format for overlapped fields')
+    gpost.add_argument('--join', dest='join', metavar="FIELD", default=None, help='join by same key-field')
+    gpost.add_argument('--jdiscard',dest='jdiscard', default=False, action='store_true', help='discard if record has no key-field')
+    gpost.add_argument('--jname', dest='jname', metavar="FIELD", default=[], action='append', help='overlap: name')
     gpost.add_argument('--jlist', dest='jlist', metavar="FIELD", default=[], action='append', help='overlap: list')
     gpost.add_argument('--jmin', dest='jmin', metavar="FIELD", default=[], action='append', help='overlap: min')
     gpost.add_argument('--jmax', dest='jmax', metavar="FIELD", default=[], action='append', help='overlap: max')
@@ -461,12 +467,13 @@ log.info("stage 3: postprocessing")
 if args.join:
     jop = dict()
     jop['join'] = args.join
-    jop['format'] = args.joinfmt
     jop['list'] = args.jlist
+    jop['name'] = args.jname
     jop['min'] = args.jmin
     jop['max'] = args.jmax
     jop['first'] = args.jfirst
     jop['last'] = args.jlast
+    jop['jdiscard'] = args.jdiscard
 
     dd = join(dd, jop)
 

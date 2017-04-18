@@ -19,7 +19,15 @@ It's possible to compare many values in same record. E.g. if you have online sho
 
 **Write regex once**. for str2str are stored in configuration. If you write complex regex today and save it in str2str config, then after few month you can re-use it simple, no need to rewrite complex regex again. 
 
+**Aggregation**. str2str can produce results based on many records. For example:
+
+- Find out sum and average, minimal and maximal values for fields.
+- Join records (like in SQL JOIN). Some data are available only after aggregation. For example, only if we will take all records for specific message from mail.log, we will know how long this message was in queue. With str2str it's possible to find most problematic messages and closely examine log for them. With simple grep it's not possible at all, because each log record alone looks boring and usual.
+
+
 **Formats**. str2str can take and return data in any text format (as it was in log, in JSON or in formatted string). So, it's good as an glue in unix pipe between commands. (e.g. take JSON data of Amazon Glacier backups and print only file names)
+
+
 
 ## Examples
 
@@ -47,6 +55,32 @@ Display only 5 biggest emails in log file:
 4529035: b.gates@example.com
 10908592: batman@example.com
 ~~~
+
+### Time to deliver
+~~~
+$ ./str2str.py -f /var/log/mail.log --join msgid --jdiscard --count
+532
+~~~
+Each message may have many lines in mail.log, and also other mailing software (postgrey, amavis, dovecot) writes there, so wc -l /var/log/mail.log is useless. With str2str we know we have 532 messages logged.
+
+~~~
+$ ./str2str.py -f /var/log/mail.log --join msgid --jdiscard --jmax log_unixtime --jmin log_unixtime --avg _join_delta_log_unixtime 
+2
+~~~
+In average, message stays in queue for 2 seconds. (time between minimal and maximal log_unixtime records for same message id)
+
+Now lets see unusual messages:
+
+~~~
+$ ./str2str.py -f /var/log/mail.log --join msgid --jdiscard --jmax log_unixtime --jmin log_unixtime --sort _join_delta_log_unixtime  --tail 5 --fmt '{msgid} {_join_delta_log_unixtime}'
+5CE4462513 31
+8B8356169C 42
+1E2AB61666 60
+A4728624DD 63
+3819A62551 308
+~~~
+
+Totally we had 10'000 records in log file. After JOIN there were 532 messages. Usually message is processed in 2s, sometimes, as we see, it takes 30-60 seconds, but 3819A62551 took 300 seconds! Maybe something is wrong? We should investigate logs for misterios message id 3819A62551. 
 
 
 ### Display archive name and size from Amazon Glacier in nice format
@@ -120,6 +154,33 @@ Example:
     }
     ...
 ~~~
+
+#### JOINS
+str2str can join records together. options:
+
+`--join FIELD` if this option is used, all records with same values of FIELD will be joined together.
+If field exist in at least one joining record, it will be present in resulting (joined) record. So, if record 1 has fields AA and BB, and record 2 has fields AA and CC, final record will have fields AA, BB and CC.
+
+if `--jdiscard` option is used, records which doesn't has join FIELD will be discarded.
+
+What if fields are overlapping (two or more records has fields of same name)? str2str behavior will depend on options `--jname`,`--jlist`, `--jmin`, `--jmax`, `--jfirst` and `--jlast`. Each of this option accepts one field name as argument, and this field will be processed by specific method. Options could be specified multiple time.
+
+if `--jname FIELD` was used, then new field is created for each new value. field name will be `_join_JC_FIELD` where JC is number of this join operation and FIELD is field name.
+
+if `--jlist FIELD` was used, FIELD will be list, and each new value is append to this list.
+
+if `--jmin FIELD` was used, FIELD will have first value (unless it's also given in --jlast FIELD), but special field `_join_min_FIELD` will be created and it will have minimal value of this field among all joined fields.
+
+if `--jmax FIELD` was used, FIELD will have first value (unless it's also given in --jlast FIELD), but special field `_join_max_FIELD` will be created and it will have maxsimal value of this field among all joined fields.
+
+**Note:** if both `--jmin FIELD` and `--jmax FIELD` was used, there will be also `_join_delta_FIELD` field with difference between max and min value.
+
+if `--jlast FIELD` was used, FIELD will have value of last field.
+
+if `--jfirst FIELD` was used, FIELD will have value of first field (never will be overwritten by new values).
+
+
+        
 
 ### Stage 4: Output
 
