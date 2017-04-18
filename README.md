@@ -2,8 +2,7 @@
 
 
 ## Purpose
---
-Smart `grep`. Mainly for loading usual plaintext file (often - log file), converting to to data structures (using library of regexes), optional filtering by logical expression and then output filtered data in plain or JSON format.
+str2str is smart `grep` or awk alternative. Mainly for loading usual plaintext file (most often: log file), converting to to data structures (using library of regexes), optional filtering by logical expression and then output filtered data in plain or JSON format.
 
 ## str2str vs grep
 
