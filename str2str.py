@@ -194,6 +194,8 @@ def join1(d, new, jop, jc):
     else:
         newd = dict(d)
     
+    newd['_join_jc'] = jc
+    
     for fname in new.keys():
         fvalue = new[fname]
         

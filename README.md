@@ -11,18 +11,20 @@ Most of things str2str can do, you can do with grep, sort and other utilities. B
 **Undestanding** Str2str can understand value of each field in log record and perform logical expressions, like "if email message size is large then X" or "count summary size for 5 largest .ISO downloads in apache access.log". 
 
 It's possible to compare many values in same record. E.g. if you have online shop and log of all purchases, like:
-`purchase #123 total sum: $1020 max price: $800` you can distinguish:
+`DATE TIME user #123 purchase #1234567 total sum: $1020 max price: $800` you can distinguish:
 
 - single purchase (total sum is same as price of most expensive item)
 - purchase of big item and accessories (TV for $1000 and cables for $50)
 - many purchases (total sum is over $2200, max price less or equal then 50% or total sum. Like if person bought two TV)
 
-**Write regex once**. for str2str are stored in configuration. If you write complex regex today and save it in str2str config, then after few month you can re-use it simple, no need to rewrite complex regex again. 
+**Write regex once**. Rules with regexes for str2str are stored in configuration files. If you write complex regex today and save it in str2str config, then after few month you can re-use it simple, no need to rewrite complex regex again. 
 
 **Aggregation**. str2str can produce results based on many records. For example:
 
 - Find out sum and average, minimal and maximal values for fields.
-- Join records (like in SQL JOIN). Some data are available only after aggregation. For example, only if we will take all records for specific message from mail.log, we will know how long this message was in queue. With str2str it's possible to find most problematic messages and closely examine log for them. With simple grep it's not possible at all, because each log record alone looks boring and usual.
+- Join records (like in SQL JOIN). Some data are available only after aggregation. For example: 
+  - if we will take all records for specific message from mail.log, we will know how long this message was in queue. With str2str it's possible to find most problematic messages and closely examine log for them. With simple grep it's not possible at all, because each log record alone looks boring and usual.
+  - Repeated purchases (users who has more then N purchases in this month). If returning buyers makes you less then 5% of income... why spend money on good service? Use 'Black Books' approach, sleep and drink at work. You will have lot of fun and will lose very little profit.
 
 
 **Formats**. str2str can take and return data in any text format (as it was in log, in JSON or in formatted string). So, it's good as an glue in unix pipe between commands. (e.g. take JSON data of Amazon Glacier backups and print only file names)
@@ -105,7 +107,14 @@ Totally we had 10'000 records in log file. After JOIN there were 532 messages. U
 
 ## Four stages of processing
 
-Each run of str2str passes 4 optional stages.
+Each run of str2str passes 4 optional stages. Functions in same stage are runs in order which is most often used, e.g. sorting runs after joining (both on postprocessing stage #3), and filtering runs on stage #2. 
+
+If you need some function to run AFTER other function, which runs usually BEFORE it, or if you need to run it twice (e.g. filter records before joining, and then filter joined records again) you can run str2str in unix pipe, something like this:
+~~~
+$ ./str2str --filter ... --join ... --jdump | ./str2str --jload --filter ...
+~~~
+
+first str2str process will run filter and then join, output data in JSON format. Second str2str process will take this data and filter it again.
 
 ### Stage 1: Input
 Loading data from file (`-f`) or from stdin. Data can be just strings (like log file), or list of objects in JSON format, or pickle serialized object.
@@ -179,8 +188,9 @@ if `--jlast FIELD` was used, FIELD will have value of last field.
 
 if `--jfirst FIELD` was used, FIELD will have value of first field (never will be overwritten by new values).
 
+On each join, `_join_jc` field is incremented, so you can see how many records are grouped in joined record.
 
-        
+Join performed before sorting, so you can sort data based on fields which will be generated during joining.
 
 ### Stage 4: Output
 
