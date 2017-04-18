@@ -1,28 +1,33 @@
 [
     {
         "input": "log_msg",
-        "name": "postgrey greylisting messages",
+        "desc": "postgrey greylisting messages",
         "re": "^action=(?P<action>[^,]+), reason=(?P<reason>[^,]+), client_name=(?P<client_name>[^,]+), client_address=(?P<client_address>[^,]+), sender=(?P<sender>[^,]+), recipient=(?P<recipient>.*)",
         "settrue": ["mail","greylist"]
     },
     {
         "input": "log_msg",
-        "name": "postfix delivery message",
+        "desc": "postfix delivery message",
 		"re": "^(?P<msgid>[0-9A-F]+): to=<(?P<to>[^>]+)>, relay=(?P<relay>[^,]*), delay=(?P<delay>[^,]+), delays=(?P<delays>[^,]+), dsn=(?P<dsn>[^,]+), status=(?P<status>[^ ]*) \\((?P<code>[0-9]*)[ ]?(?P<details>.*)\\)",
-        "settrue": "postfix",
         "spec": {
             "delay": "float"
         }
     },
     {
+        "input": "appname",
+        "desc": "set postfix flag for all postfix/*",
+        "re": "postfix/.*",
+        "settrue": "postfix"
+    },
+    {
         "input": "to",
-        "name": "get to domain",
+        "desc": "get to domain",
         "re": "^[^@]+@(?P<to_domain>.*)",
         "settrue": "get_to_domain"
     },
     {
         "input": "log_msg",
-        "name": "policyd quotas",
+        "desc": "policyd quotas",
         "re": "^module=Quotas, [^,]+, host=(?P<host>[^,]+), [^,]+, from=(?P<from>[^,]+), to=(?P<to>[^,]+), reason=(?P<reason>[^,]+), policy=[0-9]+, quota=[0-9]+, limit=[0-9]+, track=(?P<track>[^,]+), counter=(?P<counter>[^,]+), quota=(?P<quota>[^ ]+) \\((?P<percents>[^%]+)%\\)",
         "settrue": "policyd",
         "spec": {
@@ -38,8 +43,11 @@
             "size": "int",
             "nrcpt": "int"
         }
+    },
+    {
+        "input": "log_msg",
+		"re": "^(?P<msgid>[0-9A-F]+):.*",
+		"reqs": ["postfix"]		
     }
-
-
 ]
 

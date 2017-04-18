@@ -8,11 +8,18 @@ str2str is smart `grep` or awk alternative. Mainly for loading usual plaintext f
 
 Most of things str2str can do, you can do with grep, sort and other utilities. But str2str makes it easier.
 
-Str2str can understand value of each field in log record and perform logical expressions, like "if email message size is large then X" or "count summary size for 5 largest .ISO downloads in apache access.log". 
+**Undestanding** Str2str can understand value of each field in log record and perform logical expressions, like "if email message size is large then X" or "count summary size for 5 largest .ISO downloads in apache access.log". 
 
-Regexes for str2str are stored in configuration. If you write complex regex today and save it in str2str config, then after few month you can 
+It's possible to compare many values in same record. E.g. if you have online shop and log of all purchases, like:
+`purchase #123 total sum: $1020 max price: $800` you can distinguish:
 
-It can take and return data in any text format (as it was in log, in JSON or in formatted string). So, it's good as an glue in unix pipe between commands. (e.g. take JSON data of Amazon Glacier backups and print only file names)
+- single purchase (total sum is same as price of most expensive item)
+- purchase of big item and accessories (TV for $1000 and cables for $50)
+- many purchases (total sum is over $2200, max price less or equal then 50% or total sum. Like if person bought two TV)
+
+**Write regex once**. for str2str are stored in configuration. If you write complex regex today and save it in str2str config, then after few month you can re-use it simple, no need to rewrite complex regex again. 
+
+**Formats**. str2str can take and return data in any text format (as it was in log, in JSON or in formatted string). So, it's good as an glue in unix pipe between commands. (e.g. take JSON data of Amazon Glacier backups and print only file names)
 
 ## Examples
 
@@ -286,6 +293,26 @@ Other special procedures are `int` and `float` which converts field to this form
     },
 ~~~
 This rule processes postfix policyd messages. Each line processed by this rule will have field 'policyd' set to True. This is very useful for filtering, to process only this kind of records with `--filter policyd`.
+
+### reqs
+reqs is list of required fields. Rule is applied only when all required fields are present and evaluated as True (non-empty). 
+
+Example:
+~~~
+    {
+        "input": "appname",
+        "desc": "set postfix flag for all postfix/*",
+        "re": "postfix/.*",
+        "settrue": "postfix"
+    },
+    {
+        "input": "log_msg",
+		"re": "^(?P<msgid>[0-9A-F]+):.*",
+		"reqs": ["postfix"]		
+    }
+~~~
+
+Postfix log files has many lines of different format but matching template "MSGID: something". MSGID is few hexadecimal digits. We cannot just use 2nd rule, because it would match log line "ABBA: winner of Eurovision 1976". This is strange line to find in mail.log, but it's defenitely not related to postfix. We should process only records from postfix/* app.
 
 
 ## Speed-up advices

@@ -120,6 +120,15 @@ def process(ire,args,f,filename=None):
                       
                     nparse+=1                       
                     
+                    if 'reqs' in rs:
+                        for reqname in rs['reqs']:
+                            if not reqname in d:
+                                # no required field
+                                continue
+                            if not d[reqname]:
+                                # requirement is not true
+                                continue
+                    
                     if rs['input']:
                         data = d[rs['input']]
                     else:
@@ -177,6 +186,87 @@ def process(ire,args,f,filename=None):
     return dd
 
 
+
+
+def join1(d, new, jop, jc):
+    if d is None:
+        newd = dict()
+    else:
+        newd = dict(d)
+    
+    for fname in new.keys():
+        fvalue = new[fname]
+        
+        # log.info("join fname {}".format(fname))
+        if fname in newd:
+            if fname == jop['join']:
+                # no need to join key field, it's same
+                continue                
+            if fname in jop['list']:
+                newd[fname].append(fvalue)
+            if fname in jop['min']:
+                newd['_join_min_'+fname] = min(newd[fname], fvalue)
+            if fname in jop['max']:
+                newd['_join_max_'+fname] = max(newd[fname], fvalue)
+            if fname in jop['last']:
+                newd[fname] = fvalue
+                
+            if fname in jop['min'] and fname in jop['max']:
+                # make delta
+                newd['_join_delta_'+fname] = newd['_join_max_'+fname] - newd['_join_min_'+fname]
+                
+            # and no handling for 'first'.
+                
+        else:
+            # create field
+            if fname in jop['list']:
+                newd[fname] = list()
+                newd[fname].append(fvalue)
+            elif fname in jop['min']:
+                newd['_join_min_'+fname] = fvalue
+                newd[fname] = fvalue  
+            elif fname in jop['max']:
+                newd['_join_max_'+fname] = fvalue
+                newd[fname] = fvalue                  
+            # no special handling for 'first' or 'last':
+            else:
+                newd[fname] = fvalue
+
+            # special case if both min and max              
+            if fname in jop['min'] and fname in jop['max']:
+                newd['_join_delta_'+fname] = 0
+            
+    
+    return newd
+      
+
+
+def join(data, jop):
+    out = list()
+    joined_keys = list()
+    joinfield = jop['join']
+    
+    for d in data:
+        if joinfield in d:
+            key = d[joinfield]
+            if key in joined_keys:
+                # this key is already processed
+                continue
+            # join
+            newd = None
+            jc = 0
+            for dd in data:
+                if joinfield in dd and dd[joinfield] == key:
+                    # this dd has key
+                    newd = join1(newd, dd, jop, jc)
+                    jc += 1  
+            out.append(newd)        
+            joined_keys.append(key)
+        else:
+            # no joinfield, add as-is
+            out.append(d)
+    return out
+
 def mkargparse():
     parser = argparse.ArgumentParser(description='str2str: string to struct converter')
     
@@ -208,9 +298,16 @@ def mkargparse():
     gpost.add_argument('--sort',dest='sort',metavar="FIELD", default=None, help='sort by value of field')
     gpost.add_argument('--head',dest='head',metavar="NUM", default=None, help='leave only first NUM records', type=int)
     gpost.add_argument('--tail',dest='tail',metavar="NUM", default=None, help='leave only last NUM records',type=int)
-    gpost.add_argument('--reverse',dest='reverse', default=False, action='store_true', help='if sort, sort in reverse order')
+    gpost.add_argument('--reverse',dest='reverse', default=False, action='store_true', help='Reverse resulting list')
     gpost.add_argument('--rmkey', dest='rmkey', metavar="KEY", default=[], help='delete key (if exists)', action='append')
     gpost.add_argument('--onlykey', dest='onlykey', metavar="KEY", default=[], help='delete all keys except these (multiple)', action='append')
+    gpost.add_argument('--join', dest='join', metavar="FIELD", default=None, help='join by FIELD')
+    gpost.add_argument('--joinfmt', dest='joinfmt', metavar="FORMAT", default=None, help='format for overlapped fields')
+    gpost.add_argument('--jlist', dest='jlist', metavar="FIELD", default=[], action='append', help='overlap: list')
+    gpost.add_argument('--jmin', dest='jmin', metavar="FIELD", default=[], action='append', help='overlap: min')
+    gpost.add_argument('--jmax', dest='jmax', metavar="FIELD", default=[], action='append', help='overlap: max')
+    gpost.add_argument('--jfirst', dest='jfirst', metavar="FIELD", default=[], action='append', help='overlap: first')
+    gpost.add_argument('--jlast', dest='jlast', metavar="FIELD", default=[], action='append', help='overlap: last')
 
     
     # group output
@@ -361,8 +458,23 @@ if args.filter:
 # STAGE 3: postprocessing (sorting)
 log.info("stage 3: postprocessing")
 
+if args.join:
+    jop = dict()
+    jop['join'] = args.join
+    jop['format'] = args.joinfmt
+    jop['list'] = args.jlist
+    jop['min'] = args.jmin
+    jop['max'] = args.jmax
+    jop['first'] = args.jfirst
+    jop['last'] = args.jlast
+
+    dd = join(dd, jop)
+
 if args.sort:
     dd = sorted(dd, key = lambda i: i[args.sort], reverse=args.reverse)
+
+if args.reverse:
+    dd = list(reversed(dd))
 
 if args.rmkey:
     for d in dd:
