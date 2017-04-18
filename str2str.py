@@ -192,6 +192,7 @@ def mkargparse():
     # group conf
     gconf.add_argument('--re', metavar='filename.json', dest='re', help='import regexes from filename ', default=None, action='append')
     gconf.add_argument('--redir', metavar='DIR', dest='redir', help='import all json regex files from this dir (default: {})'.format(default_redir), default=default_redir)
+    gconf.add_argument('--codename', metavar='CODENAME', dest='codename', help='process only this codename(s). For debug or speed-up.', default=None, action='append')
     
     
     # group input
@@ -249,8 +250,8 @@ log.addHandler(ch)
 
 log.info("str2str started, verbosity: {}".format(args.v))
     
-# STAGE 1: import regex
-log.info("load filters")
+# pre-STAGE: import regex
+log.info("pre-stage: load filters")
 
 
 if args.redir == default_redir and not args.v:
@@ -266,9 +267,35 @@ if args.re is not None:
     for refile in args.re:
         ire += importre(refile)
 
+re_imported=0
+re_ignored=0
 
-# STAGE 2: import data
-log.info("load data")
+if args.codename:
+    new_ire = []
+    for ir in ire:
+        if 'codename' in ir:
+            if ir['codename'] in args.codename:
+                # leave this
+                log.info('load rule with codename {}'.format(ir['codename']))                
+                new_ire.append(ir)
+                re_imported += 1
+            else:
+                log.info('skip rule with codename {}'.format(ir['codename']))                
+                re_ignored += 1
+        else:
+            log.info('skip noname rule')                
+            re_ignored += 1
+                
+    ire = new_ire
+
+else:
+    re_imported = len(ire)
+
+log.info("Imported {} rules, ignored {} rules.".format(re_imported, re_ignored))
+
+
+# STAGE 1: import data
+log.info("stage 1: load data")
     
 if args.filename is not None:
     for filename in args.filename:
@@ -303,8 +330,8 @@ else:
 
 
 
-# STAGE 3: filter data
-log.info("filter")
+# STAGE 2: filter data
+log.info("stage 2: filter")
 
 if args.filter:
     log.info("filter by expression: "+args.filter)
@@ -331,7 +358,8 @@ if args.filter:
         sys.exit(1)
         
 
-# STAGE 4: postprocessing (sorting)
+# STAGE 3: postprocessing (sorting)
+log.info("stage 3: postprocessing")
 
 if args.sort:
     dd = sorted(dd, key = lambda i: i[args.sort], reverse=args.reverse)
@@ -358,8 +386,8 @@ if args.tail:
         startpos=0
     dd = dd[startpos:]
 
-# STAGE 5: output
-log.info("output results")
+# STAGE 4: output
+log.info("stage 4: output results")
 
 
 if args.dump:

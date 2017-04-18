@@ -28,6 +28,18 @@
         "spec": {
             "percents": "float"
         }
+    },
+    {
+        "input": "log_msg",
+        "codename": "qmgr",
+		"re": "^(?P<msgid>[0-9A-F]+): from=<(?P<from>[^>]+)>, size=(?P<size>\\d+), nrcpt=(?P<nrcpt>\\d+)(.*)",
+        "settrue": "qmgr",
+        "spec": {
+            "size": "int",
+            "nrcpt": "int"
+        }
     }
+
+
 ]
 
