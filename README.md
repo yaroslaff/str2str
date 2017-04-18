@@ -1,4 +1,4 @@
-﻿#str2str: String to Structure
+﻿# str2str: String to Structure
 
 
 ## Purpose
