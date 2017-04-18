@@ -2,7 +2,7 @@
 
 
 ## Purpose
-str2str is smart `grep` or awk alternative. Mainly for loading usual plaintext file (most often: log file), converting to to data structures (using library of regexes), optional filtering by logical expression and then output filtered data in plain or JSON format.
+str2str is smart `grep` or `awk` alternative. Mainly for loading usual plaintext file (most often: log file), converting to to data structures (using library of regexes), optional filtering by logical expression and then output filtered data in plain or JSON format.
 
 ## str2str vs grep
 
@@ -19,13 +19,24 @@ It's possible to compare many values in same record. E.g. if you have online sho
 
 **Write regex once**. Rules with regexes for str2str are stored in configuration files. If you write complex regex today and save it in str2str config, then after few month you can re-use it simple, no need to rewrite complex regex again. 
 
-**Aggregation**. str2str can produce results based on many records. For example:
+**Aggregation**. Not all data available as substring in log line. Some data is 'between the lines'. Simple example:
+~~~
+01-01-1991 01:02 Message ID ABC123DEF456 accepted
+~~~
+and 
+~~~
+01-01-2017 01:03 Message ID ABC123DEF456 delivered
+~~~
+Each line alone looking very boring and ordinary. But...
+~~~
+01-01-1991 01:02 Message ID ABC123DEF456 accepted
+01-01-2017 01:03 Message ID ABC123DEF456 delivered
+~~~
+Now this is very interesting! More then 26 years in queue! We defenitely need to debug our mailserver (and probably upgrade it, Intel 486DX from 1991 is little too slow. As we see.)
 
-- Find out sum and average, minimal and maximal values for fields.
-- Join records (like in SQL JOIN). Some data are available only after aggregation. For example: 
-  - if we will take all records for specific message from mail.log, we will know how long this message was in queue. With str2str it's possible to find most problematic messages and closely examine log for them. With simple grep it's not possible at all, because each log record alone looks boring and usual.
-  - Repeated purchases (users who has more then N purchases in this month). If returning buyers makes you less then 5% of income... why spend money on good service? Use 'Black Books' approach, sleep and drink at work. You will have lot of fun and will lose very little profit.
+Minimal, maximal, average, delta, count and sum - always between the lines and cannot be analyzed by simple line-by-line grepping. 
 
+With simple grep it's not possible at all to work with such data, because each log record alone looks ordinary.
 
 **Formats**. str2str can take and return data in any text format (as it was in log, in JSON or in formatted string). So, it's good as an glue in unix pipe between commands. (e.g. take JSON data of Amazon Glacier backups and print only file names)
 
@@ -82,7 +93,7 @@ A4728624DD 63
 3819A62551 308
 ~~~
 
-Totally we had 10'000 records in log file. After JOIN there were 532 messages. Usually message is processed in 2s, sometimes, as we see, it takes 30-60 seconds, but 3819A62551 took 300 seconds! Maybe something is wrong? We should investigate logs for misterios message id 3819A62551. 
+Totally we had 10'000 records in log file. After JOIN there were 532 messages. Usually message is processed in 2s, sometimes, as we see, it takes 30-60 seconds, but 3819A62551 took 300 seconds! Maybe something is wrong? We should investigate logs for misterious message id 3819A62551. 
 
 
 ### Display archive name and size from Amazon Glacier in nice format
