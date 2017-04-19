@@ -71,21 +71,21 @@ Display only 5 biggest emails in log file:
 
 ### Time to deliver
 ~~~
-$ ./str2str.py -f /var/log/mail.log --join msgid --jdiscard --count
+$ ./str2str.py -f /var/log/mail.log --group msgid --count
 532
 ~~~
 Each message may have many lines in mail.log, and also other mailing software (postgrey, amavis, dovecot) writes there, so wc -l /var/log/mail.log is useless. With str2str we know we have 532 messages logged.
 
 ~~~
-$ ./str2str.py -f /var/log/mail.log --join msgid --jdiscard --jmax log_unixtime --jmin log_unixtime --avg _join_delta_log_unixtime 
+$ ./str2str.py -f /var/log/mail.log --group msgid --gmax log_unixtime --gmin log_unixtime --avg _group_delta_log_unixtime 
 2
 ~~~
-In average, message stays in queue for 2 seconds. (time between minimal and maximal log_unixtime records for same message id)
+In average, message stays in queue for 2 seconds. (time between minimal asnd maximal log_unixtime records for same message id)
 
 Now lets see unusual messages:
 
 ~~~
-$ ./str2str.py -f /var/log/mail.log --join msgid --jdiscard --jmax log_unixtime --jmin log_unixtime --sort _join_delta_log_unixtime  --tail 5 --fmt '{msgid} {_join_delta_log_unixtime}'
+$ ./str2str.py -f /var/log/mail.log --group msgid --gmax log_unixtime --gmin log_unixtime --sort _group_delta_log_unixtime  --tail 5 --fmt '{msgid} {_group_delta_log_unixtime}'
 5CE4462513 31
 8B8356169C 42
 1E2AB61666 60
@@ -93,7 +93,7 @@ A4728624DD 63
 3819A62551 308
 ~~~
 
-Totally we had 10'000 records in log file. After JOIN there were 532 messages. Usually message is processed in 2s, sometimes, as we see, it takes 30-60 seconds, but 3819A62551 took 300 seconds! Maybe something is wrong? We should investigate logs for misterious message id 3819A62551. 
+Totally we had 10'000 records in log file. After --group there were 532 messages. Usually message is processed in 2s, sometimes, as we see, it takes 30-60 seconds, but 3819A62551 took 300 seconds! Maybe something is wrong? We should investigate logs for misterious message id 3819A62551. 
 
 
 ### Display archive name and size from Amazon Glacier in nice format
@@ -118,14 +118,14 @@ Totally we had 10'000 records in log file. After JOIN there were 532 messages. U
 
 ## Four stages of processing
 
-Each run of str2str passes 4 optional stages. Functions in same stage are runs in order which is most often used, e.g. sorting runs after joining (both on postprocessing stage #3), and filtering runs on stage #2. 
+Each run of str2str passes 4 optional stages. Functions in same stage are runs in order which is most often used, e.g. sorting runs after grouping (both on postprocessing stage #3), and filtering runs on stage #2. 
 
-If you need some function to run AFTER other function, which runs usually BEFORE it, or if you need to run it twice (e.g. filter records before joining, and then filter joined records again) you can run str2str in unix pipe, something like this:
+If you need some function to run AFTER other function, which runs usually BEFORE it, or if you need to run it twice (e.g. filter records before grouping, and then filter grouped records again) you can run str2str in unix pipe, something like this:
 ~~~
-$ ./str2str --filter ... --join ... --jdump | ./str2str --jload --filter ...
+$ ./str2str --filter ... --group ... --jdump | ./str2str --jload --filter ...
 ~~~
 
-first str2str process will run filter and then join, output data in JSON format. Second str2str process will take this data and filter it again.
+first str2str process will run filter and then group, output data in JSON format. Second str2str process will take this data and filter it again.
 
 ### Stage 1: Input
 Loading data from file (`-f`) or from stdin. Data can be just strings (like log file), or list of objects in JSON format, or pickle serialized object.
@@ -175,34 +175,33 @@ Example:
     ...
 ~~~
 
-#### JOINS
-str2str can join records together. options:
+#### GROUPS
+str2str can group records together. options:
 
-`--join FIELD` if this option is used, all records with same values of FIELD will be joined together.
-If field exist in at least one joining record, it will be present in resulting (joined) record. So, if record 1 has fields AA and BB, and record 2 has fields AA and CC, final record will have fields AA, BB and CC.
+`--group FIELD` if this option is used, all records with same values of FIELD will be grouped together.
+If field exist in at least one grouping record, it will be in resulting (grouped) record. So, if record 1 has fields AA and BB, and record 2 has fields AA and CC, final record will have fields AA, BB and CC.
 
-if `--jdiscard` option is used, records which doesn't has join FIELD will be discarded.
+What if fields are overlapping (two or more records has fields of same name)? str2str behavior will depend on options `--gname`,`--glist`, `--gmin`, `--gmax`, `--gfirst` and `--glast`. Each of this option accepts one field name as argument, and this field will be processed by specific method. Options could be specified multiple time.
 
-What if fields are overlapping (two or more records has fields of same name)? str2str behavior will depend on options `--jname`,`--jlist`, `--jmin`, `--jmax`, `--jfirst` and `--jlast`. Each of this option accepts one field name as argument, and this field will be processed by specific method. Options could be specified multiple time.
+if `--gname FIELD` was used, then new field is created for each new value. field name will be `_group_GC_FIELD` where GC is number of this group operation and FIELD is field name.
 
-if `--jname FIELD` was used, then new field is created for each new value. field name will be `_join_JC_FIELD` where JC is number of this join operation and FIELD is field name.
+if `--glist FIELD` was used, FIELD will be list, and each new value is append to this list.
 
-if `--jlist FIELD` was used, FIELD will be list, and each new value is append to this list.
+if `--gmin FIELD` was used, FIELD will have first value (unless it's also given in --glast FIELD), but special field `_group_min_FIELD` will be created and it will have minimal value of this field among all grouped fields.
 
-if `--jmin FIELD` was used, FIELD will have first value (unless it's also given in --jlast FIELD), but special field `_join_min_FIELD` will be created and it will have minimal value of this field among all joined fields.
+if `--gmax FIELD` was used, FIELD will have first value (unless it's also given in --glast FIELD), but special field `_group_max_FIELD` will be created and it will have maximal value of this field among all grouped fields.
 
-if `--jmax FIELD` was used, FIELD will have first value (unless it's also given in --jlast FIELD), but special field `_join_max_FIELD` will be created and it will have maxsimal value of this field among all joined fields.
+**Note:** if both `--gmin FIELD` and `--gmax FIELD` was used, there will be also `_group_delta_FIELD` field with difference between max and min value.
 
-**Note:** if both `--jmin FIELD` and `--jmax FIELD` was used, there will be also `_join_delta_FIELD` field with difference between max and min value.
+if `--glast FIELD` was used, FIELD will have value of last field.
 
-if `--jlast FIELD` was used, FIELD will have value of last field.
+if `--gfirst FIELD` was used, FIELD will have value of first field (never will be overwritten by new values).
 
-if `--jfirst FIELD` was used, FIELD will have value of first field (never will be overwritten by new values).
+On each grouping operation, `_group_gc` field is incremented, so you can see how many records are grouped in record.
 
-On each join, `_join_jc` field is incremented, so you can see how many records are grouped in joined record.
+Grouping performed before sorting, so you can sort data based on fields which will be generated during grouping.
 
-Join performed before sorting, so you can sort data based on fields which will be generated during joining.
-
+f
 ### Stage 4: Output
 
 - `--dump` - output data as simple python print does. (not very useful. --jdump is better.

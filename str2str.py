@@ -188,90 +188,88 @@ def process(ire,args,f,filename=None):
 
 
 
-def join1(d, new, jop, jc):
+def group1(d, new, gop):
     if d is None:
         newd = dict()
+        newd['_group_gc'] = 0
     else:
         newd = dict(d)
     
-    newd['_join_jc'] = jc
-    
+    newd['_group_gc'] += 1
+        
     for fname in new.keys():
         fvalue = new[fname]
         
         # log.info("join fname {}".format(fname))
         if fname in newd:
-            if fname == jop['join']:
+            if fname == gop['group']:
                 # no need to join key field, it's same
                 continue                
-            if fname in jop['list']:
+            if fname in gop['list']:
                 newd[fname].append(fvalue)
-            if fname in jop['min']:
-                newd['_join_min_'+fname] = min(newd[fname], fvalue)
-            if fname in jop['max']:
-                newd['_join_max_'+fname] = max(newd[fname], fvalue)
-            if fname in jop['last']:
+            if fname in gop['min']:
+                newd['_group_min_'+fname] = min(newd[fname], fvalue)
+            if fname in gop['max']:
+                newd['_group_max_'+fname] = max(newd[fname], fvalue)
+            if fname in gop['last']:
                 newd[fname] = fvalue                                   
             
-            if fname in jop['name']:
-                newfname = '_join_' + str(jc) + '_' + fname
+            if fname in gop['name']:
+                newfname = '_group_' + str(gc) + '_' + fname
                 newd[newfname] = fvalue
                 
-            if fname in jop['min'] and fname in jop['max']:
+            if fname in gop['min'] and fname in gop['max']:
                 # make delta
-                newd['_join_delta_'+fname] = newd['_join_max_'+fname] - newd['_join_min_'+fname]
+                newd['_group_delta_'+fname] = newd['_group_max_'+fname] - newd['_group_min_'+fname]
                             
             # and no handling for 'first'.
                 
         else:
             # create field
-            if fname in jop['list']:
+            if fname in gop['list']:
                 newd[fname] = list()
                 newd[fname].append(fvalue)
-            elif fname in jop['min']:
-                newd['_join_min_'+fname] = fvalue
+            elif fname in gop['min']:
+                newd['_group_min_'+fname] = fvalue
                 newd[fname] = fvalue  
-            elif fname in jop['max']:
-                newd['_join_max_'+fname] = fvalue
+            elif fname in gop['max']:
+                newd['_group_max_'+fname] = fvalue
                 newd[fname] = fvalue                  
             # no special handling for 'first' or 'last' or 'jname':
             else:
                 newd[fname] = fvalue
 
             # special case if both min and max              
-            if fname in jop['min'] and fname in jop['max']:
-                newd['_join_delta_'+fname] = 0
+            if fname in gop['min'] and fname in gop['max']:
+                newd['_group_delta_'+fname] = 0
             
     
     return newd
       
 
 
-def join(data, jop):
+def group(data, gop):
     out = list()
-    joined_keys = list()
-    joinfield = jop['join']
+    keyindex = dict()
+    
+    keyfield = gop['group']
     
     for d in data:
-        if joinfield in d:
-            key = d[joinfield]
-            if key in joined_keys:
-                # this key is already processed
-                continue
-            # join
-            newd = None
-            jc = 0
-            for dd in data:
-                if joinfield in dd and dd[joinfield] == key:
-                    # this dd has key
-                    newd = join1(newd, dd, jop, jc)
-                    jc += 1  
-            out.append(newd)        
-            joined_keys.append(key)
+        if not keyfield in d:
+            # discard it, cannot group
+            continue
+        key = d[keyfield]
+        if key in keyindex:
+            pos = keyindex[key]
+            nd = group1(out[pos],d,gop)
+            out[pos] = nd
         else:
-            # no joinfield, add as-is
-            if not jop['jdiscard']:
-                out.append(d)
+            nd = group1(None,d,gop)
+            out.append(nd)
+            pos = len(out)-1
+            keyindex[key] = pos
+    
+    
     return out
 
 def mkargparse():
@@ -308,14 +306,13 @@ def mkargparse():
     gpost.add_argument('--reverse',dest='reverse', default=False, action='store_true', help='Reverse resulting list')
     gpost.add_argument('--rmkey', dest='rmkey', metavar="KEY", default=[], help='delete key (if exists)', action='append')
     gpost.add_argument('--onlykey', dest='onlykey', metavar="KEY", default=[], help='delete all keys except these (multiple)', action='append')
-    gpost.add_argument('--join', dest='join', metavar="FIELD", default=None, help='join by same key-field')
-    gpost.add_argument('--jdiscard',dest='jdiscard', default=False, action='store_true', help='discard if record has no key-field')
-    gpost.add_argument('--jname', dest='jname', metavar="FIELD", default=[], action='append', help='overlap: name')
-    gpost.add_argument('--jlist', dest='jlist', metavar="FIELD", default=[], action='append', help='overlap: list')
-    gpost.add_argument('--jmin', dest='jmin', metavar="FIELD", default=[], action='append', help='overlap: min')
-    gpost.add_argument('--jmax', dest='jmax', metavar="FIELD", default=[], action='append', help='overlap: max')
-    gpost.add_argument('--jfirst', dest='jfirst', metavar="FIELD", default=[], action='append', help='overlap: first')
-    gpost.add_argument('--jlast', dest='jlast', metavar="FIELD", default=[], action='append', help='overlap: last')
+    gpost.add_argument('--group', dest='group', metavar="FIELD", default=None, help='group by same key-field')
+    gpost.add_argument('--gname', dest='gname', metavar="FIELD", default=[], action='append', help='overlap: name')
+    gpost.add_argument('--glist', dest='glist', metavar="FIELD", default=[], action='append', help='overlap: list')
+    gpost.add_argument('--gmin', dest='gmin', metavar="FIELD", default=[], action='append', help='overlap: min')
+    gpost.add_argument('--gmax', dest='gmax', metavar="FIELD", default=[], action='append', help='overlap: max')
+    gpost.add_argument('--gfirst', dest='gfirst', metavar="FIELD", default=[], action='append', help='overlap: first')
+    gpost.add_argument('--glast', dest='glast', metavar="FIELD", default=[], action='append', help='overlap: last')
 
     
     # group output
@@ -466,18 +463,17 @@ if args.filter:
 # STAGE 3: postprocessing (sorting)
 log.info("stage 3: postprocessing")
 
-if args.join:
-    jop = dict()
-    jop['join'] = args.join
-    jop['list'] = args.jlist
-    jop['name'] = args.jname
-    jop['min'] = args.jmin
-    jop['max'] = args.jmax
-    jop['first'] = args.jfirst
-    jop['last'] = args.jlast
-    jop['jdiscard'] = args.jdiscard
+if args.group:
+    gop = dict()
+    gop['group'] = args.group
+    gop['list'] = args.glist
+    gop['name'] = args.gname
+    gop['min'] = args.gmin
+    gop['max'] = args.gmax
+    gop['first'] = args.gfirst
+    gop['last'] = args.glast
 
-    dd = join(dd, jop)
+    dd = group(dd, gop)
 
 if args.sort:
     dd = sorted(dd, key = lambda i: i[args.sort], reverse=args.reverse)
